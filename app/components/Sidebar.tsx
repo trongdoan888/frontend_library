@@ -8,12 +8,16 @@ const ADMIN_MENU_ITEMS = [
   { label: "Quản lý sách", href: "/books" },
   { label: "Quản lý tác giả", href: "/authors" },
   { label: "Quản lý thể loại", href: "/genres" },
-  { label: "Quản lý mượn/trả", href: "/loans" },
+  { label: "Phiếu mượn", href: "/loans" },
+  { label: "Lịch sử mượn", href: "/loans/history" },
+  { label: "Phiếu mượn quá hạn", href: "/loans/overdue" },
 ];
 
 const USER_MENU_ITEMS = [
   { label: "Danh mục sách", href: "/books" },
   { label: "Danh sách mượn", href: "/loans" },
+  { label: "Lịch sử mượn", href: "/loans/history" },
+  { label: "Phiếu mượn quá hạn", href: "/loans/overdue" },
   { label: "Danh sách tác giả", href: "/authors" },
 ];
 

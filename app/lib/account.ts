@@ -53,14 +53,19 @@ export async function fetchAccount(): Promise<Account | null> {
 }
 
 export function useAccount(): Account | null {
-  const [account, setAccount] = useState<Account | null>(() => getStoredAccount());
+  // Start null on every render pass so the client's hydration render matches the server's.
+  const [account, setAccount] = useState<Account | null>(null);
 
   useEffect(() => {
-    if (account) return;
+    const stored = getStoredAccount();
+    if (stored) {
+      setAccount(stored);
+      return;
+    }
     fetchAccount().then((result) => {
       if (result) setAccount(result);
     });
-  }, [account]);
+  }, []);
 
   return account;
 }
