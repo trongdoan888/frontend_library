@@ -1,5 +1,7 @@
 "use client";
 
+import { ExclamationTriangleIcon } from "@/app/components/icons";
+
 type ConfirmDialogProps = {
   open: boolean;
   title: string;
@@ -26,8 +28,15 @@ export default function ConfirmDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
       <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-xl">
-        <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
-        <p className="mt-2 text-sm text-slate-600">{message}</p>
+        <div className="flex items-start gap-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+            <ExclamationTriangleIcon className="h-6 w-6" />
+          </span>
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
+            <p className="mt-2 text-sm text-slate-600">{message}</p>
+          </div>
+        </div>
 
         <div className="mt-6 flex justify-end gap-3">
           <button

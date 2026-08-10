@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import ProtectedPage from "@/app/components/ProtectedPage";
 import ConfirmDialog from "@/app/components/ConfirmDialog";
+import { ChevronLeftIcon, ChevronRightIcon, InboxIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon } from "@/app/components/icons";
 import { getAccessToken } from "@/app/lib/auth";
 import { useAccount } from "@/app/lib/account";
 
@@ -62,8 +63,7 @@ const EMPTY_LOAN_FORM: LoanFormState = { user: null, books: [], dueDate: "" };
 type LoanEditFormState = {
   dueDate: string;
   borrowStatus: string;
-  paymentDate: string;
-  fineAmount: string;
+  paymentDate: string
 };
 
 const BORROW_STATUS_OPTIONS = [
@@ -281,8 +281,7 @@ export default function BorrowListPage({
   const [editForm, setEditForm] = useState<LoanEditFormState>({
     dueDate: "",
     borrowStatus: "borrowed",
-    paymentDate: "",
-    fineAmount: "",
+    paymentDate: ""
   });
   const [editError, setEditError] = useState("");
   const [editSubmitting, setEditSubmitting] = useState(false);
@@ -477,8 +476,7 @@ export default function BorrowListPage({
     setEditForm({
       dueDate: loan.due_date ?? "",
       borrowStatus: loan.borrow_status ?? "borrowed",
-      paymentDate: loan.payment_date ?? "",
-      fineAmount: loan.fine_amount ?? "0",
+      paymentDate: loan.payment_date ?? ""
     });
     setEditError("");
   }
@@ -498,13 +496,6 @@ export default function BorrowListPage({
       setEditError("Vui lòng chọn hạn trả.");
       return;
     }
-    if (
-      editForm.fineAmount.trim() !== "" &&
-      (Number.isNaN(Number(editForm.fineAmount)) || Number(editForm.fineAmount) < 0)
-    ) {
-      setEditError("Vui lòng nhập tiền phạt hợp lệ.");
-      return;
-    }
 
     setEditSubmitting(true);
 
@@ -520,8 +511,7 @@ export default function BorrowListPage({
           id: editingLoan.id,
           due_date: editForm.dueDate,
           borrow_status: editForm.borrowStatus,
-          payment_date: editForm.paymentDate || null,
-          fine_amount: editForm.fineAmount.trim() === "" ? "0" : editForm.fineAmount,
+          payment_date: editForm.paymentDate || null
         }),
       });
 
@@ -587,21 +577,25 @@ export default function BorrowListPage({
             <button
               type="button"
               onClick={openAddForm}
-              className="rounded-2xl bg-indigo-600 px-5 py-2.5 font-semibold text-white transition hover:bg-indigo-500"
+              className="flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 font-semibold text-white transition hover:bg-indigo-500"
             >
-              + Thêm phiếu mượn
+              <PlusIcon className="h-4 w-4" />
+              Thêm phiếu mượn
             </button>
           ) : null}
         </div>
 
         {isFullAccess ? (
-          <input
-            type="text"
-            value={nameSearch}
-            onChange={(event) => setNameSearch(event.target.value)}
-            placeholder="Tìm theo tên người mượn..."
-            className="mt-4 w-full max-w-md rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
-          />
+          <div className="relative mt-4 w-full max-w-md">
+            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={nameSearch}
+              onChange={(event) => setNameSearch(event.target.value)}
+              placeholder="Tìm theo tên người mượn..."
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+            />
+          </div>
         ) : null}
 
         <div className="mt-2 overflow-x-auto">
@@ -627,8 +621,11 @@ export default function BorrowListPage({
                 </tr>
               ) : loans.length === 0 ? (
                 <tr>
-                  <td colSpan={columnCount} className="px-4 py-6 text-center text-slate-500">
-                    {emptyMessage}
+                  <td colSpan={columnCount} className="px-4 py-10 text-center text-slate-500">
+                    <div className="flex flex-col items-center gap-2">
+                      <InboxIcon className="h-8 w-8 text-slate-300" />
+                      {emptyMessage}
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -653,15 +650,17 @@ export default function BorrowListPage({
                           <button
                             type="button"
                             onClick={() => openEditForm(loan)}
-                            className="rounded-xl bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100"
+                            className="flex items-center gap-1 rounded-xl bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100"
                           >
+                            <PencilIcon className="h-3.5 w-3.5" />
                             Sửa
                           </button>
                           <button
                             type="button"
                             onClick={() => setDeleteTarget(loan)}
-                            className="rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100"
+                            className="flex items-center gap-1 rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100"
                           >
+                            <TrashIcon className="h-3.5 w-3.5" />
                             Xóa
                           </button>
                         </div>
@@ -683,17 +682,19 @@ export default function BorrowListPage({
               type="button"
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}
               disabled={page <= 1 || loading}
-              className="rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1 rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
+              <ChevronLeftIcon className="h-4 w-4" />
               Trước
             </button>
             <button
               type="button"
               onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={page >= totalPages || loading}
-              className="rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1 rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Sau
+              <ChevronRightIcon className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -793,17 +794,6 @@ export default function BorrowListPage({
                   type="date"
                   value={editForm.paymentDate}
                   onChange={(event) => setEditForm((prev) => ({ ...prev, paymentDate: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Tiền phạt</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={editForm.fineAmount}
-                  onChange={(event) => setEditForm((prev) => ({ ...prev, fineAmount: event.target.value }))}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
                 />
               </div>

@@ -27,7 +27,7 @@ export default function ProtectedPage({ active, title, description, children }: 
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto flex min-h-screen max-w-[1600px] gap-8 px-6 py-8">
         <Sidebar active={active} />
-        <main className="flex-1 space-y-8">
+        <main className="min-w-0 flex-1 space-y-8">
           <div className="flex items-start justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-500">{title}</p>

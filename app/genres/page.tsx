@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import ProtectedPage from "@/app/components/ProtectedPage";
 import ConfirmDialog from "@/app/components/ConfirmDialog";
+import { ChevronLeftIcon, ChevronRightIcon, InboxIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon } from "@/app/components/icons";
 import { getAccessToken } from "@/app/lib/auth";
 import { useAccount } from "@/app/lib/account";
 
@@ -276,25 +277,32 @@ export default function GenresPage() {
             <button
               type="button"
               onClick={openAddForm}
-              className="rounded-2xl bg-indigo-600 px-5 py-2.5 font-semibold text-white transition hover:bg-indigo-500"
+              className="flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 font-semibold text-white transition hover:bg-indigo-500"
             >
-              + Thêm loại sách
+              <PlusIcon className="h-4 w-4" />
+              Thêm loại sách
             </button>
           ) : null}
         </div>
 
-        <input
-          type="text"
-          value={nameSearch}
-          onChange={(event) => setNameSearch(event.target.value)}
-          placeholder="Tìm theo tên thể loại..."
-          className="mt-4 w-full max-w-md rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
-        />
+        <div className="relative mt-4 w-full max-w-md">
+          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={nameSearch}
+            onChange={(event) => setNameSearch(event.target.value)}
+            placeholder="Tìm theo tên thể loại..."
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+          />
+        </div>
 
         {loading ? (
           <p className="mt-4 text-sm text-slate-500">Đang tải...</p>
         ) : categories.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-500">Không tìm thấy thể loại nào.</p>
+          <div className="mt-4 flex flex-col items-center gap-2 py-10 text-sm text-slate-500">
+            <InboxIcon className="h-8 w-8 text-slate-300" />
+            Không tìm thấy thể loại nào.
+          </div>
         ) : (
           <div className="mt-4 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {categories.map((category) => (
@@ -308,15 +316,17 @@ export default function GenresPage() {
                     <button
                       type="button"
                       onClick={() => openEditForm(category)}
-                      className="rounded-xl bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100"
+                      className="flex items-center gap-1 rounded-xl bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100"
                     >
+                      <PencilIcon className="h-3.5 w-3.5" />
                       Sửa
                     </button>
                     <button
                       type="button"
                       onClick={() => setDeleteTarget(category)}
-                      className="rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100"
+                      className="flex items-center gap-1 rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100"
                     >
+                      <TrashIcon className="h-3.5 w-3.5" />
                       Xóa
                     </button>
                   </div>
@@ -335,17 +345,19 @@ export default function GenresPage() {
               type="button"
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}
               disabled={page <= 1 || loading}
-              className="rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1 rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
+              <ChevronLeftIcon className="h-4 w-4" />
               Trước
             </button>
             <button
               type="button"
               onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={page >= totalPages || loading}
-              className="rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1 rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Sau
+              <ChevronRightIcon className="h-4 w-4" />
             </button>
           </div>
         </div>

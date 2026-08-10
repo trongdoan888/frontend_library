@@ -109,11 +109,6 @@ export default function LoginPage() {
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>
         </form>
-
-        <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-          <p>API đăng nhập sẽ gọi tới:</p>
-          <p className="mt-2 break-words">http://localhost:8000/api/token/</p>
-        </div>
       </div>
     </div>
   );

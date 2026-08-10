@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import ProtectedPage from "@/app/components/ProtectedPage";
 import ConfirmDialog from "@/app/components/ConfirmDialog";
+import { ChevronLeftIcon, ChevronRightIcon, InboxIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon } from "@/app/components/icons";
 import { getAccessToken } from "@/app/lib/auth";
 import { useAccount } from "@/app/lib/account";
 
@@ -48,6 +49,12 @@ const ROLE_LABELS: Record<string, string> = {
   libby: "Libby",
   user: "User",
 };
+
+function getInitials(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return "?";
+  return trimmed.charAt(0).toUpperCase();
+}
 
 export default function Home() {
   const account = useAccount();
@@ -386,20 +393,24 @@ export default function Home() {
     >
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <input
-            type="text"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Tìm kiếm theo tên..."
-            className="w-full max-w-md rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
-          />
+          <div className="relative w-full max-w-md">
+            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Tìm kiếm theo tên..."
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+            />
+          </div>
 
           {isFullAccess ? (
             <button
               type="button"
               onClick={openCreateModal}
-              className="rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
+              className="flex items-center gap-2 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
             >
+              <PlusIcon className="h-4 w-4" />
               Thêm người dùng
             </button>
           ) : null}
@@ -428,14 +439,24 @@ export default function Home() {
                 </tr>
               ) : (users ?? []).length === 0 ? (
                 <tr>
-                  <td colSpan={isFullAccess ? 6 : 5} className="px-4 py-6 text-center text-slate-500">
-                    Không tìm thấy người dùng nào.
+                  <td colSpan={isFullAccess ? 6 : 5} className="px-4 py-10 text-center text-slate-500">
+                    <div className="flex flex-col items-center gap-2">
+                      <InboxIcon className="h-8 w-8 text-slate-300" />
+                      Không tìm thấy người dùng nào.
+                    </div>
                   </td>
                 </tr>
               ) : (
                 users.map((user) => (
                   <tr key={user.id} className="border-b border-slate-100 text-slate-700 transition hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-slate-900">{user.name}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700">
+                          {getInitials(user.name)}
+                        </span>
+                        {user.name}
+                      </div>
+                    </td>
                     <td className="px-4 py-3">{user.username}</td>
                     <td className="px-4 py-3">{user.email}</td>
                     <td className="px-4 py-3">{user.phone}</td>
@@ -454,16 +475,18 @@ export default function Home() {
                           <button
                             type="button"
                             onClick={() => openEditModal(user)}
-                            className="rounded-xl bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100"
+                            className="flex items-center gap-1 rounded-xl bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100"
                           >
+                            <PencilIcon className="h-3.5 w-3.5" />
                             Sửa
                           </button>
                           {canDeleteUser(user) ? (
                             <button
                               type="button"
                               onClick={() => setDeleteTarget(user)}
-                              className="rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100"
+                              className="flex items-center gap-1 rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100"
                             >
+                              <TrashIcon className="h-3.5 w-3.5" />
                               Xóa
                             </button>
                           ) : null}
@@ -486,17 +509,19 @@ export default function Home() {
               type="button"
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}
               disabled={page <= 1 || loading}
-              className="rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1 rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
+              <ChevronLeftIcon className="h-4 w-4" />
               Trước
             </button>
             <button
               type="button"
               onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={page >= totalPages || loading}
-              className="rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1 rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Sau
+              <ChevronRightIcon className="h-4 w-4" />
             </button>
           </div>
         </div>

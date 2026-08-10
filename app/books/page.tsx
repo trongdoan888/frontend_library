@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import ProtectedPage from "@/app/components/ProtectedPage";
 import ConfirmDialog from "@/app/components/ConfirmDialog";
+import { ChevronLeftIcon, ChevronRightIcon, InboxIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon } from "@/app/components/icons";
 import { getAccessToken } from "@/app/lib/auth";
 import { useAccount } from "@/app/lib/account";
 
@@ -58,26 +59,69 @@ const EMPTY_FORM: BookFormState = {
 type TagAutocompleteProps = {
   label: string;
   placeholder: string;
-  options: NamedItem[];
+  searchUrl: string;
   selected: NamedItem[];
   onChange: (next: NamedItem[]) => void;
 };
 
-function TagAutocomplete({ label, placeholder, options, selected, onChange }: TagAutocompleteProps) {
+function TagAutocomplete({ label, placeholder, searchUrl, selected, onChange }: TagAutocompleteProps) {
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [results, setResults] = useState<NamedItem[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  useEffect(() => {
+    if (!debouncedQuery) return;
+
+    let ignore = false;
+
+    async function search() {
+      setSearching(true);
+
+      try {
+        const accessToken = getAccessToken();
+        const params = new URLSearchParams({ name: debouncedQuery, page: "1", limit: "8" });
+        const response = await fetch(`${searchUrl}?${params.toString()}`, {
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+        });
+
+        if (!response.ok) {
+          throw new Error("Không thể tìm kiếm.");
+        }
+
+        const result = (await response.json()) as NamedItemListResponse;
+
+        if (!ignore) {
+          setResults(Array.isArray(result.data) ? result.data : []);
+        }
+      } catch {
+        if (!ignore) setResults([]);
+      } finally {
+        if (!ignore) setSearching(false);
+      }
+    }
+
+    search();
+
+    return () => {
+      ignore = true;
+    };
+  }, [debouncedQuery, searchUrl]);
 
   const suggestions = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return options
-      .filter((option) => option.name.toLowerCase().includes(q))
-      .filter((option) => !selected.some((item) => item.id === option.id))
-      .slice(0, 8);
-  }, [query, options, selected]);
+    if (!debouncedQuery) return [];
+    return results.filter((item) => !selected.some((option) => option.id === item.id));
+  }, [debouncedQuery, results, selected]);
 
   function addOption(option: NamedItem) {
     onChange([...selected, option]);
     setQuery("");
+    setResults([]);
   }
 
   function removeOption(id: string) {
@@ -110,7 +154,11 @@ function TagAutocomplete({ label, placeholder, options, selected, onChange }: Ta
           placeholder={placeholder}
           className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
         />
-        {suggestions.length > 0 ? (
+        {searching ? (
+          <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
+            <li className="px-4 py-2 text-sm text-slate-400">Đang tìm...</li>
+          </ul>
+        ) : suggestions.length > 0 ? (
           <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
             {suggestions.map((option) => (
               <li key={option.id}>
@@ -123,6 +171,10 @@ function TagAutocomplete({ label, placeholder, options, selected, onChange }: Ta
                 </button>
               </li>
             ))}
+          </ul>
+        ) : debouncedQuery ? (
+          <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
+            <li className="px-4 py-2 text-sm text-slate-400">Không tìm thấy kết quả.</li>
           </ul>
         ) : null}
       </div>
@@ -146,8 +198,6 @@ export default function BooksPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const [showAddForm, setShowAddForm] = useState(false);
-  const [authorOptions, setAuthorOptions] = useState<NamedItem[]>([]);
-  const [categoryOptions, setCategoryOptions] = useState<NamedItem[]>([]);
   const [form, setForm] = useState<BookFormState>(EMPTY_FORM);
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -239,40 +289,6 @@ export default function BooksPage() {
       ignore = true;
     };
   }, [page, reloadKey, debouncedSearch]);
-
-  useEffect(() => {
-    if (!showAddForm && !editingBook) return;
-    let ignore = false;
-
-    async function fetchOptions() {
-      const accessToken = getAccessToken();
-      const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
-
-      try {
-        const [authorRes, categoryRes] = await Promise.all([
-          fetch(`http://localhost:8000/api/author/?page=1&page_size=${OPTION_PAGE_SIZE}`, { headers }),
-          fetch(`http://localhost:8000/api/category/?page=1&page_size=${OPTION_PAGE_SIZE}`, { headers }),
-        ]);
-
-        if (!ignore && authorRes.ok) {
-          const authorData = (await authorRes.json()) as NamedItemListResponse;
-          setAuthorOptions(Array.isArray(authorData.data) ? authorData.data : []);
-        }
-        if (!ignore && categoryRes.ok) {
-          const categoryData = (await categoryRes.json()) as NamedItemListResponse;
-          setCategoryOptions(Array.isArray(categoryData.data) ? categoryData.data : []);
-        }
-      } catch {
-        // suggestions stay empty if this fails
-      }
-    }
-
-    fetchOptions();
-
-    return () => {
-      ignore = true;
-    };
-  }, [showAddForm, editingBook]);
 
   function openAddForm() {
     setForm(EMPTY_FORM);
@@ -478,25 +494,32 @@ export default function BooksPage() {
             <button
               type="button"
               onClick={openAddForm}
-              className="rounded-2xl bg-indigo-600 px-5 py-2.5 font-semibold text-white transition hover:bg-indigo-500"
+              className="flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 font-semibold text-white transition hover:bg-indigo-500"
             >
-              + Thêm sách
+              <PlusIcon className="h-4 w-4" />
+              Thêm sách
             </button>
           ) : null}
         </div>
 
-        <input
-          type="text"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Tìm theo tên sách, tác giả hoặc thể loại..."
-          className="mt-4 w-full max-w-md rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
-        />
+        <div className="relative mt-4 w-full max-w-md">
+          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Tìm theo tên sách, tác giả hoặc thể loại..."
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+          />
+        </div>
 
         {loading ? (
           <p className="mt-4 text-sm text-slate-500">Đang tải...</p>
         ) : books.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-500">Không tìm thấy sách nào.</p>
+          <div className="mt-4 flex flex-col items-center gap-2 py-10 text-sm text-slate-500">
+            <InboxIcon className="h-8 w-8 text-slate-300" />
+            Không tìm thấy sách nào.
+          </div>
         ) : (
           <div className="mt-4 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {books.map((book) => (
@@ -511,15 +534,17 @@ export default function BooksPage() {
                       <button
                         type="button"
                         onClick={() => openEditForm(book)}
-                        className="rounded-xl bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100"
+                        className="flex items-center gap-1 rounded-xl bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100"
                       >
+                        <PencilIcon className="h-3.5 w-3.5" />
                         Sửa
                       </button>
                       <button
                         type="button"
                         onClick={() => setDeleteTarget(book)}
-                        className="rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100"
+                        className="flex items-center gap-1 rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100"
                       >
+                        <TrashIcon className="h-3.5 w-3.5" />
                         Xóa
                       </button>
                     </div>
@@ -556,17 +581,19 @@ export default function BooksPage() {
               type="button"
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}
               disabled={page <= 1 || loading}
-              className="rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1 rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
+              <ChevronLeftIcon className="h-4 w-4" />
               Trước
             </button>
             <button
               type="button"
               onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={page >= totalPages || loading}
-              className="rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1 rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Sau
+              <ChevronRightIcon className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -591,7 +618,7 @@ export default function BooksPage() {
               <TagAutocomplete
                 label="Tác giả *"
                 placeholder="Nhập tên tác giả để tìm..."
-                options={authorOptions}
+                searchUrl="http://localhost:8000/api/author/"
                 selected={form.authors}
                 onChange={(authors) => setForm((prev) => ({ ...prev, authors }))}
               />
@@ -599,7 +626,7 @@ export default function BooksPage() {
               <TagAutocomplete
                 label="Thể loại *"
                 placeholder="Nhập tên thể loại để tìm..."
-                options={categoryOptions}
+                searchUrl="http://localhost:8000/api/category/"
                 selected={form.categories}
                 onChange={(categories) => setForm((prev) => ({ ...prev, categories }))}
               />
@@ -668,7 +695,7 @@ export default function BooksPage() {
               <TagAutocomplete
                 label="Tác giả *"
                 placeholder="Nhập tên tác giả để tìm..."
-                options={authorOptions}
+                searchUrl="http://localhost:8000/api/author/"
                 selected={editForm.authors}
                 onChange={(authors) => setEditForm((prev) => ({ ...prev, authors }))}
               />
@@ -676,7 +703,7 @@ export default function BooksPage() {
               <TagAutocomplete
                 label="Thể loại *"
                 placeholder="Nhập tên thể loại để tìm..."
-                options={categoryOptions}
+                searchUrl="http://localhost:8000/api/category/"
                 selected={editForm.categories}
                 onChange={(categories) => setEditForm((prev) => ({ ...prev, categories }))}
               />

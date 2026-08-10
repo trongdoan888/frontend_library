@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import ProtectedPage from "@/app/components/ProtectedPage";
 import ConfirmDialog from "@/app/components/ConfirmDialog";
+import { ChevronLeftIcon, ChevronRightIcon, InboxIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon } from "@/app/components/icons";
 import { getAccessToken } from "@/app/lib/auth";
 import { useAccount } from "@/app/lib/account";
 
@@ -273,27 +274,30 @@ export default function AuthorsPage() {
             <button
               type="button"
               onClick={openAddForm}
-              className="rounded-2xl bg-indigo-600 px-5 py-2.5 font-semibold text-white transition hover:bg-indigo-500"
+              className="flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 font-semibold text-white transition hover:bg-indigo-500"
             >
-              + Thêm tác giả
+              <PlusIcon className="h-4 w-4" />
+              Thêm tác giả
             </button>
           ) : null}
         </div>
 
-        <input
-          type="text"
-          value={nameSearch}
-          onChange={(event) => setNameSearch(event.target.value)}
-          placeholder="Tìm theo tên tác giả..."
-          className="mt-4 w-full max-w-md rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
-        />
+        <div className="relative mt-4 w-full max-w-md">
+          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={nameSearch}
+            onChange={(event) => setNameSearch(event.target.value)}
+            placeholder="Tìm theo tên tác giả..."
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+          />
+        </div>
 
         {isFullAccess ? (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[480px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-500">
-                  <th className="px-4 py-3 font-medium">ID</th>
                   <th className="px-4 py-3 font-medium">Tên tác giả</th>
                   <th className="px-4 py-3 font-medium">Hành động</th>
                 </tr>
@@ -301,35 +305,39 @@ export default function AuthorsPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={3} className="px-4 py-6 text-center text-slate-500">
+                    <td colSpan={2} className="px-4 py-6 text-center text-slate-500">
                       Đang tải...
                     </td>
                   </tr>
                 ) : authors.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="px-4 py-6 text-center text-slate-500">
-                      Không tìm thấy tác giả nào.
+                    <td colSpan={2} className="px-4 py-10 text-center text-slate-500">
+                      <div className="flex flex-col items-center gap-2">
+                        <InboxIcon className="h-8 w-8 text-slate-300" />
+                        Không tìm thấy tác giả nào.
+                      </div>
                     </td>
                   </tr>
                 ) : (
                   authors.map((author) => (
                     <tr key={author.id} className="border-b border-slate-100 text-slate-700 transition hover:bg-slate-50">
-                      <td className="px-4 py-3 text-slate-400">{author.id}</td>
                       <td className="px-4 py-3 font-medium text-slate-900">{author.name}</td>
                       <td className="px-4 py-3">
                         <div className="flex gap-2">
                           <button
                             type="button"
                             onClick={() => openEditForm(author)}
-                            className="rounded-xl bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100"
+                            className="flex items-center gap-1 rounded-xl bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100"
                           >
+                            <PencilIcon className="h-3.5 w-3.5" />
                             Sửa
                           </button>
                           <button
                             type="button"
                             onClick={() => setDeleteTarget(author)}
-                            className="rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100"
+                            className="flex items-center gap-1 rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100"
                           >
+                            <TrashIcon className="h-3.5 w-3.5" />
                             Xóa
                           </button>
                         </div>
@@ -343,7 +351,10 @@ export default function AuthorsPage() {
         ) : loading ? (
           <p className="mt-4 text-sm text-slate-500">Đang tải...</p>
         ) : authors.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-500">Không tìm thấy tác giả nào.</p>
+          <div className="mt-4 flex flex-col items-center gap-2 py-10 text-sm text-slate-500">
+            <InboxIcon className="h-8 w-8 text-slate-300" />
+            Không tìm thấy tác giả nào.
+          </div>
         ) : (
           <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {authors.map((author) => (
@@ -366,17 +377,19 @@ export default function AuthorsPage() {
               type="button"
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}
               disabled={page <= 1 || loading}
-              className="rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1 rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
+              <ChevronLeftIcon className="h-4 w-4" />
               Trước
             </button>
             <button
               type="button"
               onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={page >= totalPages || loading}
-              className="rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1 rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Sau
+              <ChevronRightIcon className="h-4 w-4" />
             </button>
           </div>
         </div>
