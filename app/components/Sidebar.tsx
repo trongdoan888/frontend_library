@@ -22,7 +22,9 @@ const USER_MENU_ITEMS = [
 ];
 
 function getMenuItems(role?: Role) {
-  return role === "user" ? USER_MENU_ITEMS : ADMIN_MENU_ITEMS;
+  if (role === "user") return USER_MENU_ITEMS;
+  if (role === "admin") return [{ label: "Dashboard", href: "/dashboard" }, ...ADMIN_MENU_ITEMS];
+  return ADMIN_MENU_ITEMS;
 }
 
 export default function Sidebar({ active }: { active: string }) {
@@ -31,10 +33,10 @@ export default function Sidebar({ active }: { active: string }) {
   const menuItems = getMenuItems(account?.role);
 
   return (
-    <aside className="flex h-full w-72 flex-col rounded-3xl border border-slate-200/10 bg-slate-950/95 p-6 text-slate-100 shadow-2xl shadow-slate-950/20">
-      <div className="mb-10 rounded-3xl bg-slate-900/90 px-4 py-4">
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Dashboard</p>
-        <h2 className="text-lg font-semibold">Thư viện</h2>
+    <aside className="flex h-full w-72 flex-col rounded-3xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm">
+      <div className="mb-10 rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-500 px-4 py-4 text-white shadow-sm">
+        <p className="text-xs uppercase tracking-[0.3em] text-indigo-100">Thư viện</p>
+        <h2 className="text-lg font-semibold">Quản lý thư viện</h2>
       </div>
 
       <nav className="space-y-2">
@@ -45,8 +47,8 @@ export default function Sidebar({ active }: { active: string }) {
             onClick={() => router.push(item.href)}
             className={`flex w-full items-center justify-between rounded-3xl px-4 py-3 text-left text-sm font-medium transition ${
               active === item.href
-                ? "bg-slate-800 text-white"
-                : "bg-slate-950/80 text-slate-300 hover:bg-slate-900"
+                ? "bg-indigo-600 text-white shadow-sm"
+                : "text-slate-600 hover:bg-slate-100"
             }`}
           >
             {item.label}

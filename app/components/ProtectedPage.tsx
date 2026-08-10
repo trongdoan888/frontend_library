@@ -24,15 +24,15 @@ export default function ProtectedPage({ active, title, description, children }: 
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto flex min-h-screen max-w-[1600px] gap-8 px-6 py-8">
         <Sidebar active={active} />
         <main className="flex-1 space-y-8">
-          <div className="flex items-start justify-between gap-4 rounded-3xl border border-slate-200/10 bg-slate-900/95 p-8 shadow-xl shadow-slate-950/10">
+          <div className="flex items-start justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
             <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-slate-500">{title}</p>
-              <h1 className="mt-4 text-3xl font-semibold text-white">{title}</h1>
-              <p className="mt-2 text-slate-400">{description}</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-500">{title}</p>
+              <h1 className="mt-4 text-3xl font-semibold text-slate-900">{title}</h1>
+              <p className="mt-2 text-slate-500">{description}</p>
             </div>
             <UserMenu />
           </div>

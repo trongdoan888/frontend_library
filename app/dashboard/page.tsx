@@ -1,66 +1,122 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import ProtectedPage from "@/app/components/ProtectedPage";
 import { getAccessToken } from "@/app/lib/auth";
-import Sidebar from "@/app/components/Sidebar";
-import { users, books, authors, genres, loans } from "@/app/lib/mockData";
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+type DashboardStats = {
+  total_books: number;
+  total_book_quantity: number;
+  total_users: number;
+  total_borrowed: number;
+  total_overdue: number;
+};
+
+const RING_SIZE = 152;
+const RING_STROKE = 14;
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
+type StatRingProps = {
+  label: string;
+  value: number;
+  color: string;
+  trackColor: string;
+};
+
+function StatRing({ label, value, color, trackColor }: StatRingProps) {
   return (
-    <section className="rounded-3xl border border-slate-200/10 bg-slate-900/95 p-6 shadow-xl shadow-slate-950/10">
-      <h2 className="text-lg font-semibold text-white">{title}</h2>
-      <div className="mt-4 space-y-4">{children}</div>
-    </section>
+    <div className="flex flex-col items-center gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md">
+      <svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
+        <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS} fill="none" stroke={trackColor} strokeWidth={RING_STROKE} />
+        <circle
+          cx={RING_SIZE / 2}
+          cy={RING_SIZE / 2}
+          r={RING_RADIUS}
+          fill="none"
+          stroke={color}
+          strokeWidth={RING_STROKE}
+          strokeLinecap="round"
+          strokeDasharray={RING_CIRCUMFERENCE}
+          strokeDashoffset={0}
+          transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
+        />
+        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-slate-900 text-2xl font-semibold">
+          {value.toLocaleString("vi-VN")}
+        </text>
+      </svg>
+      <p className="text-sm font-medium text-slate-600">{label}</p>
+    </div>
   );
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const accessToken = getAccessToken();
-    if (!accessToken) {
-      router.replace("/login");
+    let ignore = false;
+
+    async function fetchStats() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const accessToken = getAccessToken();
+        const response = await fetch("http://localhost:8000/api/dashboard/", {
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+        });
+
+        if (response.status === 403) {
+          throw new Error("Trang này chỉ dành cho Admin.");
+        }
+        if (!response.ok) {
+          throw new Error("Không thể tải dữ liệu thống kê.");
+        }
+
+        const result = (await response.json()) as DashboardStats;
+        if (!ignore) setStats(result);
+      } catch (err) {
+        if (!ignore) setError(err instanceof Error ? err.message : "Không thể tải dữ liệu thống kê.");
+      } finally {
+        if (!ignore) setLoading(false);
+      }
     }
-  }, [router]);
+
+    fetchStats();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto flex min-h-screen max-w-[1600px] gap-8 px-6 py-8">
-        <Sidebar active="/" />
-        <main className="flex-1 space-y-8">
-          <div className="rounded-3xl border border-slate-200/10 bg-slate-900/95 p-8 shadow-xl shadow-slate-950/10">
-            <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Xin chào</p>
-            <h1 className="mt-4 text-3xl font-semibold text-white">Trang quản lý thư viện</h1>
-            <p className="mt-2 text-slate-400">Chọn mục bên trái để quản lý người dùng, sách, tác giả, thể loại và mượn/trả.</p>
+    <ProtectedPage active="/dashboard" title="Dashboard" description="Thống kê tổng quan về thư viện.">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        {loading ? (
+          <p className="text-sm text-slate-500">Đang tải...</p>
+        ) : error ? (
+          <p className="text-sm text-rose-600">{error}</p>
+        ) : stats ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <StatRing label="Số đầu sách" value={stats.total_books} color="#2a78d6" trackColor="rgba(42,120,214,0.12)" />
+            <StatRing
+              label="Tổng số lượng sách"
+              value={stats.total_book_quantity}
+              color="#2a78d6"
+              trackColor="rgba(42,120,214,0.12)"
+            />
+            <StatRing
+              label="Sách đang được mượn"
+              value={stats.total_borrowed}
+              color="#eb6834"
+              trackColor="rgba(235,104,52,0.12)"
+            />
+            <StatRing label="Người dùng" value={stats.total_users} color="#1baf7a" trackColor="rgba(27,175,122,0.12)" />
           </div>
-
-          <Section title="Người dùng">
-            <div className="grid gap-4 sm:grid-cols-3">
-              {users.map((user) => (
-                <div key={user.id} className="rounded-3xl border border-slate-700/70 bg-slate-950/80 p-4">
-                  <p className="text-sm text-slate-400">{user.role}</p>
-                  <h3 className="mt-2 text-lg font-semibold text-white">{user.fullName}</h3>
-                  <p className="mt-1 text-sm text-slate-300">{user.username}</p>
-                </div>
-              ))}
-            </div>
-          </Section>
-
-          <Section title="Sách nổi bật">
-            <div className="grid gap-4 sm:grid-cols-3">
-              {books.map((book) => (
-                <div key={book.id} className="rounded-3xl border border-slate-700/70 bg-slate-950/80 p-4">
-                  <h3 className="text-lg font-semibold text-white">{book.title}</h3>
-                  <p className="mt-2 text-sm text-slate-300">Tác giả: {book.author}</p>
-                  <p className="mt-1 text-sm text-slate-400">Thể loại: {book.genre}</p>
-                </div>
-              ))}
-            </div>
-          </Section>
-        </main>
+        ) : null}
       </div>
-    </div>
+    </ProtectedPage>
   );
 }

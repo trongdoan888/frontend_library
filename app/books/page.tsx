@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import ProtectedPage from "@/app/components/ProtectedPage";
+import ConfirmDialog from "@/app/components/ConfirmDialog";
 import { getAccessToken } from "@/app/lib/auth";
 import { useAccount } from "@/app/lib/account";
 
@@ -11,6 +12,7 @@ type NamedItem = {
 };
 
 type Book = {
+  id: string;
   name: string;
   categories: NamedItem[];
   authors: NamedItem[];
@@ -84,16 +86,16 @@ function TagAutocomplete({ label, placeholder, options, selected, onChange }: Ta
 
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-slate-300">{label}</label>
+      <label className="mb-2 block text-sm font-medium text-slate-700">{label}</label>
       {selected.length > 0 ? (
         <div className="mb-2 flex flex-wrap gap-2">
           {selected.map((item) => (
             <span
               key={item.id}
-              className="flex items-center gap-2 rounded-full bg-blue-500/20 px-3 py-1 text-xs font-medium text-blue-200"
+              className="flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
             >
               {item.name}
-              <button type="button" onClick={() => removeOption(item.id)} className="text-blue-300 hover:text-white">
+              <button type="button" onClick={() => removeOption(item.id)} className="text-indigo-400 hover:text-indigo-700">
                 ×
               </button>
             </span>
@@ -106,16 +108,16 @@ function TagAutocomplete({ label, placeholder, options, selected, onChange }: Ta
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={placeholder}
-          className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-2.5 text-sm text-slate-100 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
         />
         {suggestions.length > 0 ? (
-          <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-xl">
+          <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
             {suggestions.map((option) => (
               <li key={option.id}>
                 <button
                   type="button"
                   onClick={() => addOption(option)}
-                  className="block w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-800"
+                  className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
                 >
                   {option.name}
                 </button>
@@ -149,6 +151,14 @@ export default function BooksPage() {
   const [form, setForm] = useState<BookFormState>(EMPTY_FORM);
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const [editingBook, setEditingBook] = useState<Book | null>(null);
+  const [editForm, setEditForm] = useState<BookFormState>(EMPTY_FORM);
+  const [editError, setEditError] = useState("");
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
+  const [deleteTarget, setDeleteTarget] = useState<Book | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -231,7 +241,7 @@ export default function BooksPage() {
   }, [page, reloadKey, debouncedSearch]);
 
   useEffect(() => {
-    if (!showAddForm) return;
+    if (!showAddForm && !editingBook) return;
     let ignore = false;
 
     async function fetchOptions() {
@@ -262,7 +272,7 @@ export default function BooksPage() {
     return () => {
       ignore = true;
     };
-  }, [showAddForm]);
+  }, [showAddForm, editingBook]);
 
   function openAddForm() {
     setForm(EMPTY_FORM);
@@ -339,20 +349,136 @@ export default function BooksPage() {
     }
   }
 
+  function openEditForm(book: Book) {
+    setEditingBook(book);
+    setEditForm({
+      name: book.name,
+      content: book.content ?? "",
+      total: book.total !== undefined ? String(book.total) : "",
+      authors: book.authors ?? [],
+      categories: book.categories ?? [],
+    });
+    setEditError("");
+  }
+
+  function closeEditForm() {
+    setEditingBook(null);
+    setEditError("");
+  }
+
+  async function handleEditSubmit(event: FormEvent) {
+    event.preventDefault();
+    setEditError("");
+
+    if (!editingBook) return;
+
+    const name = editForm.name.trim();
+    if (!name) {
+      setEditError("Vui lòng nhập tên sách.");
+      return;
+    }
+    if (books.some((book) => book.id !== editingBook.id && book.name.trim().toLowerCase() === name.toLowerCase())) {
+      setEditError("Tên sách đã tồn tại.");
+      return;
+    }
+    if (editForm.authors.length === 0) {
+      setEditError("Vui lòng chọn ít nhất một tác giả.");
+      return;
+    }
+    if (editForm.categories.length === 0) {
+      setEditError("Vui lòng chọn ít nhất một thể loại.");
+      return;
+    }
+    if (editForm.total.trim() === "" || Number.isNaN(Number(editForm.total)) || Number(editForm.total) < 0) {
+      setEditError("Vui lòng nhập tổng số sách hợp lệ.");
+      return;
+    }
+
+    setEditSubmitting(true);
+
+    try {
+      const accessToken = getAccessToken();
+      const response = await fetch("http://localhost:8000/api/book/", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({
+          id: editingBook.id,
+          name,
+          authors: editForm.authors.map((author) => author.id),
+          categories: editForm.categories.map((category) => category.id),
+          content: editForm.content.trim(),
+          total: Number(editForm.total),
+        }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        setEditError(result?.error || result?.message || "Không thể cập nhật sách. Vui lòng kiểm tra lại thông tin.");
+        return;
+      }
+
+      setEditingBook(null);
+      setReloadKey((key) => key + 1);
+    } catch {
+      setEditError("Lỗi kết nối đến máy chủ. Vui lòng thử lại sau.");
+    } finally {
+      setEditSubmitting(false);
+    }
+  }
+
+  function cancelDelete() {
+    if (deleting) return;
+    setDeleteTarget(null);
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+
+    setDeleting(true);
+    setError("");
+
+    try {
+      const accessToken = getAccessToken();
+      const response = await fetch("http://localhost:8000/api/book/", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ id: deleteTarget.id }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        throw new Error(result?.error || result?.message || "Không thể xóa sách.");
+      }
+
+      setDeleteTarget(null);
+      setReloadKey((key) => key + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể xóa sách.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <ProtectedPage
       active="/books"
       title="Quản lý sách"
       description="Danh sách sách hiện có trong thư viện."
     >
-      <div className="rounded-3xl border border-slate-200/10 bg-slate-900/95 p-6 shadow-xl shadow-slate-950/10">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          {error ? <p className="text-sm text-rose-400">{error}</p> : <span />}
+          {error ? <p className="text-sm text-rose-600">{error}</p> : <span />}
           {isFullAccess ? (
             <button
               type="button"
               onClick={openAddForm}
-              className="rounded-2xl bg-blue-600 px-5 py-2.5 font-semibold text-white transition hover:bg-blue-500"
+              className="rounded-2xl bg-indigo-600 px-5 py-2.5 font-semibold text-white transition hover:bg-indigo-500"
             >
               + Thêm sách
             </button>
@@ -364,26 +490,49 @@ export default function BooksPage() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Tìm theo tên sách, tác giả hoặc thể loại..."
-          className="mt-4 w-full max-w-md rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-2.5 text-sm text-slate-100 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+          className="mt-4 w-full max-w-md rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
         />
 
         {loading ? (
-          <p className="mt-4 text-sm text-slate-400">Đang tải...</p>
+          <p className="mt-4 text-sm text-slate-500">Đang tải...</p>
         ) : books.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-400">Không tìm thấy sách nào.</p>
+          <p className="mt-4 text-sm text-slate-500">Không tìm thấy sách nào.</p>
         ) : (
           <div className="mt-4 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {books.map((book, index) => (
-              <div key={`${book.name}-${index}`} className="rounded-3xl border border-slate-700/70 bg-slate-900/90 p-6">
-                <h3 className="text-xl font-semibold text-white">{book.name}</h3>
-                <p className="mt-3 text-sm text-slate-300">
+            {books.map((book) => (
+              <div
+                key={book.id}
+                className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="text-xl font-semibold text-slate-900">{book.name}</h3>
+                  {isFullAccess ? (
+                    <div className="flex shrink-0 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openEditForm(book)}
+                        className="rounded-xl bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100"
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTarget(book)}
+                        className="rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100"
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+                <p className="mt-3 text-sm text-slate-600">
                   Tác giả: {(book.authors ?? []).map((author) => author.name).join(", ") || "—"}
                 </p>
-                <p className="mt-1 text-sm text-slate-400">
+                <p className="mt-1 text-sm text-slate-500">
                   Thể loại: {(book.categories ?? []).map((category) => category.name).join(", ") || "—"}
                 </p>
-                {book.content ? <p className="mt-3 line-clamp-3 text-sm text-slate-400">{book.content}</p> : null}
-                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-300">
+                {book.content ? <p className="mt-3 line-clamp-3 text-sm text-slate-500">{book.content}</p> : null}
+                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
                   <span>Còn lại: {book.remaining}</span>
                   {isFullAccess ? (
                     <>
@@ -398,7 +547,7 @@ export default function BooksPage() {
           </div>
         )}
 
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-slate-400">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-slate-500">
           <p>
             Trang {page}/{totalPages} · Tổng {total} sách
           </p>
@@ -407,7 +556,7 @@ export default function BooksPage() {
               type="button"
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}
               disabled={page <= 1 || loading}
-              className="rounded-2xl bg-slate-800 px-4 py-2 font-semibold text-slate-200 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Trước
             </button>
@@ -415,7 +564,7 @@ export default function BooksPage() {
               type="button"
               onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={page >= totalPages || loading}
-              className="rounded-2xl bg-slate-800 px-4 py-2 font-semibold text-slate-200 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Sau
             </button>
@@ -424,18 +573,18 @@ export default function BooksPage() {
       </div>
 
       {showAddForm ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-            <h2 className="text-xl font-semibold text-white">Thêm sách</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-xl">
+            <h2 className="text-xl font-semibold text-slate-900">Thêm sách</h2>
 
             <form onSubmit={handleSubmit} className="mt-4 space-y-4">
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-300">Tên sách *</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Tên sách *</label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-2.5 text-sm text-slate-100 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
                 />
               </div>
 
@@ -456,41 +605,41 @@ export default function BooksPage() {
               />
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-300">Nội dung</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Nội dung</label>
                 <textarea
                   value={form.content}
                   onChange={(event) => setForm((prev) => ({ ...prev, content: event.target.value }))}
                   rows={3}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-2.5 text-sm text-slate-100 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-300">Tổng số *</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Tổng số *</label>
                 <input
                   type="number"
                   min={0}
                   value={form.total}
                   onChange={(event) => setForm((prev) => ({ ...prev, total: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-2.5 text-sm text-slate-100 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
                 />
               </div>
 
-              {formError ? <p className="text-sm text-rose-400">{formError}</p> : null}
+              {formError ? <p className="text-sm text-rose-600">{formError}</p> : null}
 
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={closeAddForm}
                   disabled={submitting}
-                  className="rounded-2xl bg-slate-800 px-5 py-2.5 font-semibold text-slate-200 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-2xl bg-slate-100 px-5 py-2.5 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-2xl bg-blue-600 px-5 py-2.5 font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-2xl bg-indigo-600 px-5 py-2.5 font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {submitting ? "Đang lưu..." : "Lưu sách"}
                 </button>
@@ -499,6 +648,92 @@ export default function BooksPage() {
           </div>
         </div>
       ) : null}
+
+      {editingBook ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-xl">
+            <h2 className="text-xl font-semibold text-slate-900">Chỉnh sửa sách</h2>
+
+            <form onSubmit={handleEditSubmit} className="mt-4 space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Tên sách *</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(event) => setEditForm((prev) => ({ ...prev, name: event.target.value }))}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+                />
+              </div>
+
+              <TagAutocomplete
+                label="Tác giả *"
+                placeholder="Nhập tên tác giả để tìm..."
+                options={authorOptions}
+                selected={editForm.authors}
+                onChange={(authors) => setEditForm((prev) => ({ ...prev, authors }))}
+              />
+
+              <TagAutocomplete
+                label="Thể loại *"
+                placeholder="Nhập tên thể loại để tìm..."
+                options={categoryOptions}
+                selected={editForm.categories}
+                onChange={(categories) => setEditForm((prev) => ({ ...prev, categories }))}
+              />
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Nội dung</label>
+                <textarea
+                  value={editForm.content}
+                  onChange={(event) => setEditForm((prev) => ({ ...prev, content: event.target.value }))}
+                  rows={3}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Tổng số *</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={editForm.total}
+                  onChange={(event) => setEditForm((prev) => ({ ...prev, total: event.target.value }))}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+                />
+              </div>
+
+              {editError ? <p className="text-sm text-rose-600">{editError}</p> : null}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeEditForm}
+                  disabled={editSubmitting}
+                  className="rounded-2xl bg-slate-100 px-5 py-2.5 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSubmitting}
+                  className="rounded-2xl bg-indigo-600 px-5 py-2.5 font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {editSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Xóa sách"
+        message={`Bạn có chắc chắn muốn xóa sách "${deleteTarget?.name}"? Hành động này không thể hoàn tác.`}
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
     </ProtectedPage>
   );
 }

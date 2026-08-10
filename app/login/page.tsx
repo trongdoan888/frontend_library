@@ -60,17 +60,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/95 p-8 shadow-2xl shadow-slate-950/20">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-50 via-slate-50 to-white px-4 py-8 text-slate-900">
+      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
         <div className="mb-8 text-center">
-          <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Quản lý thư viện</p>
-          <h1 className="mt-4 text-3xl font-semibold text-white">Đăng nhập</h1>
-          <p className="mt-2 text-sm text-slate-400">Sử dụng tài khoản để quản lý hệ thống thư viện.</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-500">Quản lý thư viện</p>
+          <h1 className="mt-4 text-3xl font-semibold text-slate-900">Đăng nhập</h1>
+          <p className="mt-2 text-sm text-slate-500">Sử dụng tài khoản để quản lý hệ thống thư viện.</p>
         </div>
 
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
-            <label className="text-sm font-medium text-slate-300" htmlFor="username">
+            <label className="text-sm font-medium text-slate-700" htmlFor="username">
               Tên đăng nhập
             </label>
             <input
@@ -79,13 +79,13 @@ export default function LoginPage() {
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               required
-              className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-slate-100 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
               placeholder="Nhập tên đăng nhập"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-slate-300" htmlFor="password">
+            <label className="text-sm font-medium text-slate-700" htmlFor="password">
               Mật khẩu
             </label>
             <input
@@ -94,23 +94,23 @@ export default function LoginPage() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               required
-              className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-slate-100 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
               placeholder="Nhập mật khẩu"
             />
           </div>
 
-          {error ? <p className="text-sm text-rose-400">{error}</p> : null}
+          {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-600"
+            className="flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>
         </form>
 
-        <div className="mt-8 rounded-2xl border border-slate-700 bg-slate-950/80 p-4 text-sm text-slate-400">
+        <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
           <p>API đăng nhập sẽ gọi tới:</p>
           <p className="mt-2 break-words">http://localhost:8000/api/token/</p>
         </div>

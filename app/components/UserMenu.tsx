@@ -32,7 +32,7 @@ export default function UserMenu() {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-slate-200 transition hover:bg-slate-700"
+        className="flex h-11 w-11 items-center justify-center rounded-full border border-indigo-100 bg-indigo-50 text-indigo-600 transition hover:bg-indigo-100"
         aria-label="Tài khoản"
       >
         <svg viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6">
@@ -45,10 +45,10 @@ export default function UserMenu() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-20 mt-3 w-56 overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-xl shadow-slate-950/30">
-          <div className="border-b border-slate-800 px-4 py-3">
-            <p className="truncate text-sm font-semibold text-white">{account?.name ?? account?.username ?? "Người dùng"}</p>
-            <p className="truncate text-xs text-slate-400">{account?.email}</p>
+        <div className="absolute right-0 z-20 mt-3 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
+          <div className="border-b border-slate-100 px-4 py-3">
+            <p className="truncate text-sm font-semibold text-slate-900">{account?.name ?? account?.username ?? "Người dùng"}</p>
+            <p className="truncate text-xs text-slate-500">{account?.email}</p>
           </div>
           <button
             type="button"
@@ -56,14 +56,14 @@ export default function UserMenu() {
               setOpen(false);
               router.push("/profile");
             }}
-            className="block w-full px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-800"
+            className="block w-full px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50"
           >
             Thông tin cá nhân
           </button>
           <button
             type="button"
             onClick={handleLogout}
-            className="block w-full px-4 py-3 text-left text-sm text-rose-400 transition hover:bg-slate-800"
+            className="block w-full px-4 py-3 text-left text-sm text-rose-600 transition hover:bg-rose-50"
           >
             Đăng xuất
           </button>

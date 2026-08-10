@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import ProtectedPage from "@/app/components/ProtectedPage";
+import ConfirmDialog from "@/app/components/ConfirmDialog";
 import { getAccessToken } from "@/app/lib/auth";
 import { useAccount } from "@/app/lib/account";
 
@@ -40,6 +41,14 @@ export default function AuthorsPage() {
   const [name, setName] = useState("");
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const [editingAuthor, setEditingAuthor] = useState<Author | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editError, setEditError] = useState("");
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
+  const [deleteTarget, setDeleteTarget] = useState<Author | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -156,20 +165,115 @@ export default function AuthorsPage() {
     }
   }
 
+  function openEditForm(author: Author) {
+    setEditingAuthor(author);
+    setEditName(author.name);
+    setEditError("");
+  }
+
+  function closeEditForm() {
+    setEditingAuthor(null);
+    setEditError("");
+  }
+
+  async function handleEditSubmit(event: FormEvent) {
+    event.preventDefault();
+    setEditError("");
+
+    if (!editingAuthor) return;
+
+    const trimmedName = editName.trim();
+    if (!trimmedName) {
+      setEditError("Vui lòng nhập tên tác giả.");
+      return;
+    }
+    if (
+      authors.some(
+        (author) => author.id !== editingAuthor.id && author.name.trim().toLowerCase() === trimmedName.toLowerCase()
+      )
+    ) {
+      setEditError("Tên tác giả đã tồn tại.");
+      return;
+    }
+
+    setEditSubmitting(true);
+
+    try {
+      const accessToken = getAccessToken();
+      const response = await fetch("http://localhost:8000/api/author/", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ id: editingAuthor.id, name: trimmedName }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        setEditError(result?.error || result?.message || "Không thể cập nhật tác giả. Vui lòng kiểm tra lại thông tin.");
+        return;
+      }
+
+      setEditingAuthor(null);
+      setReloadKey((key) => key + 1);
+    } catch {
+      setEditError("Lỗi kết nối đến máy chủ. Vui lòng thử lại sau.");
+    } finally {
+      setEditSubmitting(false);
+    }
+  }
+
+  function cancelDelete() {
+    if (deleting) return;
+    setDeleteTarget(null);
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+
+    setDeleting(true);
+    setError("");
+
+    try {
+      const accessToken = getAccessToken();
+      const response = await fetch("http://localhost:8000/api/author/", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ id: deleteTarget.id }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        throw new Error(result?.error || result?.message || "Không thể xóa tác giả.");
+      }
+
+      setDeleteTarget(null);
+      setReloadKey((key) => key + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể xóa tác giả.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <ProtectedPage
       active="/authors"
       title="Quản lý tác giả"
       description="Thông tin các tác giả có trong hệ thống."
     >
-      <div className="rounded-3xl border border-slate-200/10 bg-slate-900/95 p-6 shadow-xl shadow-slate-950/10">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          {error ? <p className="text-sm text-rose-400">{error}</p> : <span />}
+          {error ? <p className="text-sm text-rose-600">{error}</p> : <span />}
           {isFullAccess ? (
             <button
               type="button"
               onClick={openAddForm}
-              className="rounded-2xl bg-blue-600 px-5 py-2.5 font-semibold text-white transition hover:bg-blue-500"
+              className="rounded-2xl bg-indigo-600 px-5 py-2.5 font-semibold text-white transition hover:bg-indigo-500"
             >
               + Thêm tác giả
             </button>
@@ -181,36 +285,55 @@ export default function AuthorsPage() {
           value={nameSearch}
           onChange={(event) => setNameSearch(event.target.value)}
           placeholder="Tìm theo tên tác giả..."
-          className="mt-4 w-full max-w-md rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-2.5 text-sm text-slate-100 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+          className="mt-4 w-full max-w-md rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
         />
 
         {isFullAccess ? (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[480px] border-collapse text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-700/70 text-slate-400">
+                <tr className="border-b border-slate-200 text-slate-500">
                   <th className="px-4 py-3 font-medium">ID</th>
                   <th className="px-4 py-3 font-medium">Tên tác giả</th>
+                  <th className="px-4 py-3 font-medium">Hành động</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={2} className="px-4 py-6 text-center text-slate-400">
+                    <td colSpan={3} className="px-4 py-6 text-center text-slate-500">
                       Đang tải...
                     </td>
                   </tr>
                 ) : authors.length === 0 ? (
                   <tr>
-                    <td colSpan={2} className="px-4 py-6 text-center text-slate-400">
+                    <td colSpan={3} className="px-4 py-6 text-center text-slate-500">
                       Không tìm thấy tác giả nào.
                     </td>
                   </tr>
                 ) : (
                   authors.map((author) => (
-                    <tr key={author.id} className="border-b border-slate-800/70 text-slate-200">
-                      <td className="px-4 py-3">{author.id}</td>
-                      <td className="px-4 py-3 font-medium text-white">{author.name}</td>
+                    <tr key={author.id} className="border-b border-slate-100 text-slate-700 transition hover:bg-slate-50">
+                      <td className="px-4 py-3 text-slate-400">{author.id}</td>
+                      <td className="px-4 py-3 font-medium text-slate-900">{author.name}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openEditForm(author)}
+                            className="rounded-xl bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100"
+                          >
+                            Sửa
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(author)}
+                            className="rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100"
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -218,15 +341,15 @@ export default function AuthorsPage() {
             </table>
           </div>
         ) : loading ? (
-          <p className="mt-4 text-sm text-slate-400">Đang tải...</p>
+          <p className="mt-4 text-sm text-slate-500">Đang tải...</p>
         ) : authors.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-400">Không tìm thấy tác giả nào.</p>
+          <p className="mt-4 text-sm text-slate-500">Không tìm thấy tác giả nào.</p>
         ) : (
           <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {authors.map((author) => (
               <li
                 key={author.id}
-                className="rounded-2xl border border-slate-700/70 bg-slate-950/70 px-4 py-3 font-medium text-white"
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 font-medium text-slate-900 shadow-sm"
               >
                 {author.name}
               </li>
@@ -234,7 +357,7 @@ export default function AuthorsPage() {
           </ul>
         )}
 
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-slate-400">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-slate-500">
           <p>
             Trang {page}/{totalPages} · Tổng {total} tác giả
           </p>
@@ -243,7 +366,7 @@ export default function AuthorsPage() {
               type="button"
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}
               disabled={page <= 1 || loading}
-              className="rounded-2xl bg-slate-800 px-4 py-2 font-semibold text-slate-200 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Trước
             </button>
@@ -251,7 +374,7 @@ export default function AuthorsPage() {
               type="button"
               onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={page >= totalPages || loading}
-              className="rounded-2xl bg-slate-800 px-4 py-2 font-semibold text-slate-200 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-2xl bg-slate-100 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Sau
             </button>
@@ -260,36 +383,36 @@ export default function AuthorsPage() {
       </div>
 
       {showAddForm ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-3xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-            <h2 className="text-xl font-semibold text-white">Thêm tác giả</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-xl">
+            <h2 className="text-xl font-semibold text-slate-900">Thêm tác giả</h2>
 
             <form onSubmit={handleSubmit} className="mt-4 space-y-4">
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-300">Tên tác giả *</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Tên tác giả *</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-2.5 text-sm text-slate-100 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
                 />
               </div>
 
-              {formError ? <p className="text-sm text-rose-400">{formError}</p> : null}
+              {formError ? <p className="text-sm text-rose-600">{formError}</p> : null}
 
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={closeAddForm}
                   disabled={submitting}
-                  className="rounded-2xl bg-slate-800 px-5 py-2.5 font-semibold text-slate-200 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-2xl bg-slate-100 px-5 py-2.5 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-2xl bg-blue-600 px-5 py-2.5 font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-2xl bg-indigo-600 px-5 py-2.5 font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {submitting ? "Đang lưu..." : "Lưu tác giả"}
                 </button>
@@ -298,6 +421,55 @@ export default function AuthorsPage() {
           </div>
         </div>
       ) : null}
+
+      {editingAuthor ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-xl">
+            <h2 className="text-xl font-semibold text-slate-900">Chỉnh sửa tác giả</h2>
+
+            <form onSubmit={handleEditSubmit} className="mt-4 space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Tên tác giả *</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(event) => setEditName(event.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+                />
+              </div>
+
+              {editError ? <p className="text-sm text-rose-600">{editError}</p> : null}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeEditForm}
+                  disabled={editSubmitting}
+                  className="rounded-2xl bg-slate-100 px-5 py-2.5 font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSubmitting}
+                  className="rounded-2xl bg-indigo-600 px-5 py-2.5 font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {editSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Xóa tác giả"
+        message={`Bạn có chắc chắn muốn xóa tác giả "${deleteTarget?.name}"? Hành động này không thể hoàn tác.`}
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
     </ProtectedPage>
   );
 }
