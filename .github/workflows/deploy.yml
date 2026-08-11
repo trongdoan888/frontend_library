@@ -1,0 +1,35 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: true
+
+env:
+  # Path to the library-app checkout on the VM (contains docker-compose.yml
+  # and this repo checked out as the "frontend_library" submodule).
+  DEPLOY_PATH: /opt/library-app
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, frontend-library]
+    steps:
+      - name: Pull latest frontend_library code
+        run: |
+          set -e
+          cd "$DEPLOY_PATH/frontend_library"
+          git fetch origin main
+          git reset --hard origin/main
+
+      - name: Rebuild and restart frontend service only
+        run: |
+          set -e
+          cd "$DEPLOY_PATH"
+          docker compose build frontend
+          docker compose up -d frontend
+
+      - name: Prune dangling images
+        run: docker image prune -f

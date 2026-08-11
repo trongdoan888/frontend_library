@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import ProtectedPage from "@/app/components/ProtectedPage";
 import { getAccessToken } from "@/app/lib/auth";
+import { API_BASE_URL } from "@/app/lib/api";
 
 type DashboardStats = {
   total_books: number;
@@ -64,7 +65,7 @@ export default function DashboardPage() {
 
       try {
         const accessToken = getAccessToken();
-        const response = await fetch("http://localhost:8000/api/dashboard/", {
+        const response = await fetch(`${API_BASE_URL}/api/dashboard/`, {
           headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
         });
 

@@ -16,6 +16,7 @@ import {
 } from "@/app/components/icons";
 import { getAccessToken } from "@/app/lib/auth";
 import { useAccount } from "@/app/lib/account";
+import { API_BASE_URL } from "@/app/lib/api";
 
 type User = {
   id: string;
@@ -132,7 +133,7 @@ export default function Home() {
       }
 
       const accessToken = getAccessToken();
-      const response = await fetch(`http://localhost:8000/api/user/?${params.toString()}`, {
+      const response = await fetch(`${API_BASE_URL}/api/user/?${params.toString()}`, {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
       });
 
@@ -217,7 +218,7 @@ export default function Home() {
 
     try {
       const accessToken = getAccessToken();
-      const response = await fetch("http://localhost:8000/api/user/", {
+      const response = await fetch(`${API_BASE_URL}/api/user/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -340,7 +341,7 @@ export default function Home() {
       if (editForm.password.trim()) body.password = editForm.password.trim();
       if (canChooseRole) body.role = editForm.role;
 
-      const response = await fetch("http://localhost:8000/api/user/", {
+      const response = await fetch(`${API_BASE_URL}/api/user/`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -377,7 +378,7 @@ export default function Home() {
 
     try {
       const accessToken = getAccessToken();
-      const response = await fetch("http://localhost:8000/api/user/", {
+      const response = await fetch(`${API_BASE_URL}/api/user/`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -418,7 +419,7 @@ export default function Home() {
 
     try {
       const accessToken = getAccessToken();
-      const response = await fetch("http://localhost:8000/api/user/", {
+      const response = await fetch(`${API_BASE_URL}/api/user/`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

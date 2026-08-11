@@ -6,6 +6,7 @@ import ConfirmDialog from "@/app/components/ConfirmDialog";
 import { ChevronLeftIcon, ChevronRightIcon, InboxIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon } from "@/app/components/icons";
 import { getAccessToken } from "@/app/lib/auth";
 import { useAccount } from "@/app/lib/account";
+import { API_BASE_URL } from "@/app/lib/api";
 
 type NamedItem = {
   id: string;
@@ -237,7 +238,7 @@ export default function BooksPage() {
         );
 
         const accessToken = getAccessToken();
-        const response = await fetch(`http://localhost:8000/api/book/?${params.toString()}`, {
+        const response = await fetch(`${API_BASE_URL}/api/book/?${params.toString()}`, {
           headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
         });
 
@@ -331,7 +332,7 @@ export default function BooksPage() {
 
     try {
       const accessToken = getAccessToken();
-      const response = await fetch("http://localhost:8000/api/book/", {
+      const response = await fetch(`${API_BASE_URL}/api/book/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -414,7 +415,7 @@ export default function BooksPage() {
 
     try {
       const accessToken = getAccessToken();
-      const response = await fetch("http://localhost:8000/api/book/", {
+      const response = await fetch(`${API_BASE_URL}/api/book/`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -458,7 +459,7 @@ export default function BooksPage() {
 
     try {
       const accessToken = getAccessToken();
-      const response = await fetch("http://localhost:8000/api/book/", {
+      const response = await fetch(`${API_BASE_URL}/api/book/`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -618,7 +619,7 @@ export default function BooksPage() {
               <TagAutocomplete
                 label="Tác giả *"
                 placeholder="Nhập tên tác giả để tìm..."
-                searchUrl="http://localhost:8000/api/author/"
+                searchUrl={`${API_BASE_URL}/api/author/`}
                 selected={form.authors}
                 onChange={(authors) => setForm((prev) => ({ ...prev, authors }))}
               />
@@ -626,7 +627,7 @@ export default function BooksPage() {
               <TagAutocomplete
                 label="Thể loại *"
                 placeholder="Nhập tên thể loại để tìm..."
-                searchUrl="http://localhost:8000/api/category/"
+                searchUrl={`${API_BASE_URL}/api/category/`}
                 selected={form.categories}
                 onChange={(categories) => setForm((prev) => ({ ...prev, categories }))}
               />
@@ -695,7 +696,7 @@ export default function BooksPage() {
               <TagAutocomplete
                 label="Tác giả *"
                 placeholder="Nhập tên tác giả để tìm..."
-                searchUrl="http://localhost:8000/api/author/"
+                searchUrl={`${API_BASE_URL}/api/author/`}
                 selected={editForm.authors}
                 onChange={(authors) => setEditForm((prev) => ({ ...prev, authors }))}
               />
@@ -703,7 +704,7 @@ export default function BooksPage() {
               <TagAutocomplete
                 label="Thể loại *"
                 placeholder="Nhập tên thể loại để tìm..."
-                searchUrl="http://localhost:8000/api/category/"
+                searchUrl={`${API_BASE_URL}/api/category/`}
                 selected={editForm.categories}
                 onChange={(categories) => setEditForm((prev) => ({ ...prev, categories }))}
               />

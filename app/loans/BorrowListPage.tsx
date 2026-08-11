@@ -6,6 +6,7 @@ import ConfirmDialog from "@/app/components/ConfirmDialog";
 import { ChevronLeftIcon, ChevronRightIcon, InboxIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon } from "@/app/components/icons";
 import { getAccessToken } from "@/app/lib/auth";
 import { useAccount } from "@/app/lib/account";
+import { API_BASE_URL } from "@/app/lib/api";
 
 type BookQuantity = {
   name: string;
@@ -316,7 +317,7 @@ export default function BorrowListPage({
         );
 
         const accessToken = getAccessToken();
-        const response = await fetch(`http://localhost:8000/api/borrow/?${params.toString()}`, {
+        const response = await fetch(`${API_BASE_URL}/api/borrow/?${params.toString()}`, {
           headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
         });
 
@@ -376,8 +377,8 @@ export default function BorrowListPage({
 
       try {
         const [userRes, bookRes] = await Promise.all([
-          fetch(`http://localhost:8000/api/user/?page=1&page_size=${OPTION_PAGE_SIZE}`, { headers }),
-          fetch(`http://localhost:8000/api/book/?page=1&page_size=${OPTION_PAGE_SIZE}`, { headers }),
+          fetch(`${API_BASE_URL}/api/user/?page=1&page_size=${OPTION_PAGE_SIZE}`, { headers }),
+          fetch(`${API_BASE_URL}/api/book/?page=1&page_size=${OPTION_PAGE_SIZE}`, { headers }),
         ]);
 
         if (!ignore && userRes.ok) {
@@ -440,7 +441,7 @@ export default function BorrowListPage({
 
     try {
       const accessToken = getAccessToken();
-      const response = await fetch("http://localhost:8000/api/borrow/", {
+      const response = await fetch(`${API_BASE_URL}/api/borrow/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -501,7 +502,7 @@ export default function BorrowListPage({
 
     try {
       const accessToken = getAccessToken();
-      const response = await fetch("http://localhost:8000/api/borrow/", {
+      const response = await fetch(`${API_BASE_URL}/api/borrow/`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -543,7 +544,7 @@ export default function BorrowListPage({
 
     try {
       const accessToken = getAccessToken();
-      const response = await fetch("http://localhost:8000/api/borrow/", {
+      const response = await fetch(`${API_BASE_URL}/api/borrow/`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

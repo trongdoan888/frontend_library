@@ -6,6 +6,7 @@ import ConfirmDialog from "@/app/components/ConfirmDialog";
 import { ChevronLeftIcon, ChevronRightIcon, InboxIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon } from "@/app/components/icons";
 import { getAccessToken } from "@/app/lib/auth";
 import { useAccount } from "@/app/lib/account";
+import { API_BASE_URL } from "@/app/lib/api";
 
 type Category = {
   id: string;
@@ -75,7 +76,7 @@ export default function GenresPage() {
         if (debouncedNameSearch) params.set("name", debouncedNameSearch);
 
         const accessToken = getAccessToken();
-        const response = await fetch(`http://localhost:8000/api/category/?${params.toString()}`, {
+        const response = await fetch(`${API_BASE_URL}/api/category/?${params.toString()}`, {
           headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
         });
 
@@ -140,7 +141,7 @@ export default function GenresPage() {
 
     try {
       const accessToken = getAccessToken();
-      const response = await fetch("http://localhost:8000/api/category/", {
+      const response = await fetch(`${API_BASE_URL}/api/category/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -202,7 +203,7 @@ export default function GenresPage() {
 
     try {
       const accessToken = getAccessToken();
-      const response = await fetch("http://localhost:8000/api/category/", {
+      const response = await fetch(`${API_BASE_URL}/api/category/`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -241,7 +242,7 @@ export default function GenresPage() {
 
     try {
       const accessToken = getAccessToken();
-      const response = await fetch("http://localhost:8000/api/category/", {
+      const response = await fetch(`${API_BASE_URL}/api/category/`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

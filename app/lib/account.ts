@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getAccessToken } from "@/app/lib/auth";
+import { API_BASE_URL } from "@/app/lib/api";
 
 export type Role = "admin" | "libby" | "user";
 
@@ -41,7 +42,7 @@ export async function fetchAccount(): Promise<Account | null> {
   const accessToken = getAccessToken();
   if (!accessToken) return null;
 
-  const response = await fetch("http://localhost:8000/api/account/", {
+  const response = await fetch(`${API_BASE_URL}/api/account/`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 
