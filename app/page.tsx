@@ -3,7 +3,17 @@
 import { useCallback, useEffect, useState } from "react";
 import ProtectedPage from "@/app/components/ProtectedPage";
 import ConfirmDialog from "@/app/components/ConfirmDialog";
-import { ChevronLeftIcon, ChevronRightIcon, InboxIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon } from "@/app/components/icons";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  InboxIcon,
+  LockClosedIcon,
+  LockOpenIcon,
+  PencilIcon,
+  PlusIcon,
+  SearchIcon,
+  TrashIcon,
+} from "@/app/components/icons";
 import { getAccessToken } from "@/app/lib/auth";
 import { useAccount } from "@/app/lib/account";
 
@@ -14,6 +24,7 @@ type User = {
   phone: string;
   role: string;
   name: string;
+  is_active: boolean;
 };
 
 type UserListResponse = {
@@ -83,7 +94,16 @@ export default function Home() {
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const [lockTarget, setLockTarget] = useState<User | null>(null);
+  const [lockSubmitting, setLockSubmitting] = useState(false);
+
   function canDeleteUser(user: User): boolean {
+    if (account?.role === "admin") return true;
+    if (account?.role === "libby") return user.role !== "admin";
+    return false;
+  }
+
+  function canLockUser(user: User): boolean {
     if (account?.role === "admin") return true;
     if (account?.role === "libby") return user.role !== "admin";
     return false;
@@ -385,6 +405,43 @@ export default function Home() {
     }
   }
 
+  function cancelLockUser() {
+    if (lockSubmitting) return;
+    setLockTarget(null);
+  }
+
+  async function confirmToggleLock() {
+    if (!lockTarget) return;
+
+    setLockSubmitting(true);
+    setError("");
+
+    try {
+      const accessToken = getAccessToken();
+      const response = await fetch("http://localhost:8000/api/user/", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ id: lockTarget.id, is_active: !lockTarget.is_active }),
+      });
+
+      const result = (await response.json().catch(() => null)) as { error?: string; message?: string } | null;
+
+      if (!response.ok) {
+        throw new Error(result?.error || result?.message || "Không thể cập nhật trạng thái tài khoản.");
+      }
+
+      setLockTarget(null);
+      await fetchUsers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể cập nhật trạng thái tài khoản.");
+    } finally {
+      setLockSubmitting(false);
+    }
+  }
+
   return (
     <ProtectedPage
       active="/"
@@ -427,19 +484,20 @@ export default function Home() {
                 <th className="px-4 py-3 font-medium">Email</th>
                 <th className="px-4 py-3 font-medium">Số điện thoại</th>
                 <th className="px-4 py-3 font-medium">Vai trò</th>
+                <th className="px-4 py-3 font-medium">Trạng thái</th>
                 {isFullAccess ? <th className="px-4 py-3 font-medium">Hành động</th> : null}
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={isFullAccess ? 6 : 5} className="px-4 py-6 text-center text-slate-500">
+                  <td colSpan={isFullAccess ? 7 : 6} className="px-4 py-6 text-center text-slate-500">
                     Đang tải...
                   </td>
                 </tr>
               ) : (users ?? []).length === 0 ? (
                 <tr>
-                  <td colSpan={isFullAccess ? 6 : 5} className="px-4 py-10 text-center text-slate-500">
+                  <td colSpan={isFullAccess ? 7 : 6} className="px-4 py-10 text-center text-slate-500">
                     <div className="flex flex-col items-center gap-2">
                       <InboxIcon className="h-8 w-8 text-slate-300" />
                       Không tìm thấy người dùng nào.
@@ -469,6 +527,15 @@ export default function Home() {
                         {ROLE_LABELS[user.role] ?? user.role}
                       </span>
                     </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          user.is_active ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                        }`}
+                      >
+                        {user.is_active ? "Hoạt động" : "Đã khóa"}
+                      </span>
+                    </td>
                     {isFullAccess ? (
                       <td className="px-4 py-3">
                         <div className="flex gap-2">
@@ -480,6 +547,24 @@ export default function Home() {
                             <PencilIcon className="h-3.5 w-3.5" />
                             Sửa
                           </button>
+                          {canLockUser(user) ? (
+                            <button
+                              type="button"
+                              onClick={() => setLockTarget(user)}
+                              className={`flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                                user.is_active
+                                  ? "bg-amber-50 text-amber-600 hover:bg-amber-100"
+                                  : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                              }`}
+                            >
+                              {user.is_active ? (
+                                <LockClosedIcon className="h-3.5 w-3.5" />
+                              ) : (
+                                <LockOpenIcon className="h-3.5 w-3.5" />
+                              )}
+                              {user.is_active ? "Khóa" : "Mở khóa"}
+                            </button>
+                          ) : null}
                           {canDeleteUser(user) ? (
                             <button
                               type="button"
@@ -800,6 +885,21 @@ export default function Home() {
         loading={deleting}
         onConfirm={confirmDeleteUser}
         onCancel={cancelDeleteUser}
+      />
+
+      <ConfirmDialog
+        open={lockTarget !== null}
+        title={lockTarget?.is_active ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+        message={
+          lockTarget?.is_active
+            ? `Bạn có chắc chắn muốn khóa tài khoản "${lockTarget?.name}"? Người dùng này sẽ không thể đăng nhập cho đến khi được mở khóa.`
+            : `Bạn có chắc chắn muốn mở khóa tài khoản "${lockTarget?.name}"?`
+        }
+        confirmLabel={lockTarget?.is_active ? "Khóa" : "Mở khóa"}
+        loadingLabel={lockTarget?.is_active ? "Đang khóa..." : "Đang mở khóa..."}
+        loading={lockSubmitting}
+        onConfirm={confirmToggleLock}
+        onCancel={cancelLockUser}
       />
     </ProtectedPage>
   );

@@ -8,6 +8,7 @@ type ConfirmDialogProps = {
   message: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  loadingLabel?: string;
   loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -19,6 +20,7 @@ export default function ConfirmDialog({
   message,
   confirmLabel = "Xóa",
   cancelLabel = "Hủy",
+  loadingLabel = "Đang xóa...",
   loading = false,
   onConfirm,
   onCancel,
@@ -53,7 +55,7 @@ export default function ConfirmDialog({
             disabled={loading}
             className="rounded-2xl bg-rose-600 px-5 py-2.5 font-semibold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? "Đang xóa..." : confirmLabel}
+            {loading ? loadingLabel : confirmLabel}
           </button>
         </div>
       </div>
