@@ -105,9 +105,8 @@ export default function Home() {
   }
 
   function canLockUser(user: User): boolean {
-    if (account?.role === "admin") return true;
-    if (account?.role === "libby") return user.role !== "admin";
-    return false;
+    if (user.role === "admin") return false;
+    return account?.role === "admin" || account?.role === "libby";
   }
 
   useEffect(() => {
