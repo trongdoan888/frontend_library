@@ -99,9 +99,8 @@ export default function Home() {
   const [lockSubmitting, setLockSubmitting] = useState(false);
 
   function canDeleteUser(user: User): boolean {
-    if (account?.role === "admin") return true;
-    if (account?.role === "libby") return user.role !== "admin";
-    return false;
+    if (user.role === "admin") return false;
+    return account?.role === "admin" || account?.role === "libby";
   }
 
   function canLockUser(user: User): boolean {
