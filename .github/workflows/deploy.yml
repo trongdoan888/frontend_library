@@ -4,9 +4,9 @@ on:
   push:
     branches: [main]
 
-concurrency:
-  group: deploy-frontend
-  cancel-in-progress: true
+# concurrency:
+#   group: deploy-frontend
+#   cancel-in-progress: true
 
 env:
   # Path to the library-app checkout on the VM (contains docker-compose.yml
