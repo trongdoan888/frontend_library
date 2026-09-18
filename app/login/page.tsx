@@ -65,7 +65,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
         <div className="mb-8 text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-500">Quản lý thư viện</p>
-          <h1 className="mt-4 text-3xl font-semibold text-slate-900">Đăng nhập</h1>
+          <h1 className="mt-4 text-3xl font-semibold text-slate-900">ĐĂNG NHẬP 123356 </h1>
           <p className="mt-2 text-sm text-slate-500">Sử dụng tài khoản để quản lý hệ thống thư viện.</p>
         </div>
 
